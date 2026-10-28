@@ -1,0 +1,96 @@
+// Демо-сервис «Каталог библиотеки» — тестовый стенд для автотестов.
+// В сервисе специально оставлены ошибки (см. README, раздел «Известные баги»),
+// чтобы показать, как автотесты ведут известные баги.
+syntax = "proto3";
+
+package library.v1;
+
+service CatalogService {
+  rpc CreateAuthor(CreateAuthorRequest) returns (Author);
+  rpc GetAuthor(GetAuthorRequest) returns (Author);
+  rpc DeleteAuthor(DeleteAuthorRequest) returns (DeleteResponse);
+
+  rpc UpsertBook(Book) returns (Book);
+  rpc GetBook(GetBookRequest) returns (Book);
+  rpc DeleteBook(DeleteBookRequest) returns (DeleteResponse);
+  rpc ListBooksByAuthor(ListBooksByAuthorRequest) returns (stream Book);
+}
+
+// Поиск асинхронный: StartSearch → GetSearchStatus (пока не DONE) → GetSearchResults.
+service SearchService {
+  rpc StartSearch(StartSearchRequest) returns (StartSearchResponse);
+  rpc GetSearchStatus(GetSearchStatusRequest) returns (SearchStatus);
+  rpc GetSearchResults(GetSearchResultsRequest) returns (SearchResults);
+}
+
+enum Genre {
+  GENRE_UNSPECIFIED = 0;
+  FICTION = 1;
+  NON_FICTION = 2;
+  SCIENCE = 3;
+  POETRY = 4;
+}
+
+message Author {
+  string id = 1;
+  string name = 2;
+  string country = 3;
+  int32 birth_year = 4;
+  string tag = 5;  // произвольная метка; автотесты пишут сюда «qa-autotest»
+}
+
+message CreateAuthorRequest {
+  string name = 1;
+  string country = 2;
+  int32 birth_year = 3;
+  string tag = 4;
+}
+
+message GetAuthorRequest { string id = 1; }
+message DeleteAuthorRequest { string id = 1; }
+message DeleteResponse {}
+
+message Price {
+  int64 amount = 1;             // цена в копейках
+  int64 discounted_amount = 2;  // цена со скидкой, не больше amount
+  string currency = 3;
+}
+
+message Book {
+  string id = 1;  // пустой — сервис создаст новый id
+  string author_id = 2;
+  string title = 3;
+  Genre genre = 4;
+  int32 year = 5;
+  Price price = 6;
+  bool available = 7;
+  string tag = 8;
+}
+
+message GetBookRequest { string id = 1; }
+message DeleteBookRequest { string id = 1; }
+message ListBooksByAuthorRequest { string author_id = 1; }
+
+message StartSearchRequest {
+  string query = 1;  // часть названия, без учёта регистра
+  Genre genre = 2;   // GENRE_UNSPECIFIED — любой жанр
+}
+message StartSearchResponse { string search_id = 1; }
+
+enum SearchState {
+  SEARCH_STATE_UNSPECIFIED = 0;
+  IN_PROGRESS = 1;
+  DONE = 2;
+}
+
+message GetSearchStatusRequest { string search_id = 1; }
+message SearchStatus {
+  string search_id = 1;
+  SearchState state = 2;
+}
+
+message GetSearchResultsRequest { string search_id = 1; }
+message SearchResults {
+  string search_id = 1;
+  repeated Book books = 2;
+}

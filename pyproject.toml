@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grpc-api-autotests"
+version = "1.0.0"
+description = "Шаблон автотестов gRPC API на pytest + pydantic: reflection-клиент, тестовые данные с автоуборкой, сверка с БД, асинхронные сценарии, известные баги, Allure"
+requires-python = ">=3.11"
+dependencies = [
+    "pytest>=8.3",
+    "pytest-xdist>=3.6",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "grpcio>=1.66",
+    "grpcio-reflection>=1.66",
+    "grpcio-tools>=1.66",
+    "protobuf>=5.28",
+    "faker>=30.0",
+    "allure-pytest>=2.13",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.7"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+packages = { find = { where = ["src"] } }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+addopts = "-ra --strict-markers"
+markers = [
+    "smoke: быстрый набор — сервис жив и ключевые сценарии работают (на каждый деплой)",
+    "regress: полный регресс (по расписанию)",
+    "contract: опубликованные сервисы и методы, сверка моделей со схемой — ловит дрейф API",
+    "writes: тест создаёт и удаляет свои данные (пропускается, если ALLOW_WRITES=false)",
+    "needs_db: нужна прямая проверка в базе (DB_PATH)",
+    "known_bug: известный баг — тест проверяет правильное поведение и помечен xfail(strict)",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["demo_service/gen"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "T20"]   # T20: запрет print в коде тестов
+
+[tool.ruff.lint.per-file-ignores]
+"tests/conftest.py" = ["T20"]
+"tools/*" = ["T20"]

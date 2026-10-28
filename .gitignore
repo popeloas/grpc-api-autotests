@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# база и сгенерированный код демо-сервиса
+.demo/
+demo_service/gen/
+.demo-server.log
+
+# отчёты
+allure-results/
+allure-report/
+junit.xml
+
+# пароли и ключи стендов — никогда в git
+stands/*.secrets.env
+stands/shared.env

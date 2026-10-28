@@ -1,0 +1,59 @@
+name: autotests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * *"   # каждый день в 08:00 МСК
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Зависимости
+        run: pip install -e ".[dev]"
+
+      - name: Линтер
+        run: ruff check src tests tools demo_service
+
+      - name: У каждого теста есть метка smoke/regress
+        run: python tools/check_markers.py tests
+
+      - name: Демо-сервис + автотесты
+        run: PY=python ./tools/run-local.sh --junitxml=junit.xml
+
+      - name: Итог в сводку прогона
+        if: always()
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import xml.etree.ElementTree as ET
+          s = ET.parse("junit.xml").getroot().find("testsuite")
+          total, fail, err, skip = (int(s.get(k, 0)) for k in ("tests", "failures", "errors", "skipped"))
+          print("## Автотесты\n")
+          print("| Всего | Прошло | Упало | Пропущено / известные баги |")
+          print("|---|---|---|---|")
+          print(f"| {total} | {total - fail - err - skip} | {fail + err} | {skip} |")
+          PY
+
+      - name: Отчёт Allure
+        if: always()
+        run: |
+          curl -sSL https://github.com/allure-framework/allure2/releases/download/2.30.0/allure-2.30.0.tgz | tar xz
+          ./allure-2.30.0/bin/allure generate allure-results -o allure-report --clean --single-file
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-report
+          path: allure-report/index.html
+          retention-days: 14
